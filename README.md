@@ -7,12 +7,12 @@ to detect and extract Tunisian vehicle plate numbers from images or video stream
 It can be integrated into parking systems, security checkpoints, and fleet management platforms.
 
 ## ⚙️ Features ##
-🚗 Tunisian plate detection
-🔤 Optical Character Recognition (OCR)
-🎥 Image & video processing
-📡 REST API integration
-🧠 AI-ready architecture (YOLO / OpenCV)
-🗂️ Logging & tracking system
+- 🚗 Tunisian plate detection
+- 🔤 Optical Character Recognition (OCR)
+- 🎥 Image & video processing
+- 📡 REST API integration
+- 🧠 AI-ready architecture (YOLO / OpenCV)
+- 🗂️ Logging & tracking system
 
 ## 🧱 Tech Stack ##
 - Language: Python
@@ -81,16 +81,16 @@ LOG_LEVEL=INFO
 YOLO_MODEL_PATH=models/best.pt
 ```
 🔑 Environment Variables Explained 
-NODE_BACKEND_URL → Node.js backend endpoint
-API_SECRET_KEY → Optional security key
-ENTRY_CAMERA_RTSP → Entry camera stream URL
-EXIT_CAMERA_RTSP → Exit camera stream URL
-TESSERACT_CMD → Path to Tesseract OCR executable
-FRAME_INTERVAL → Time between frame processing (seconds)
-CONFIDENCE_THRESHOLD → Minimum detection confidence
-DUPLICATE_COOLDOWN_SEC → Time to ignore duplicate plates
-LOG_LEVEL → Logging level (INFO, DEBUG, etc.)
-YOLO_MODEL_PATH → Path to trained YOLO model
+- NODE_BACKEND_URL → Node.js backend endpoint
+- API_SECRET_KEY → Optional security key
+- ENTRY_CAMERA_RTSP → Entry camera stream URL
+- EXIT_CAMERA_RTSP → Exit camera stream URL
+- TESSERACT_CMD → Path to Tesseract OCR executable
+- FRAME_INTERVAL → Time between frame processing (seconds)
+- CONFIDENCE_THRESHOLD → Minimum detection confidence
+- DUPLICATE_COOLDOWN_SEC → Time to ignore duplicate plates
+- LOG_LEVEL → Logging level (INFO, DEBUG, etc.)
+- YOLO_MODEL_PATH → Path to trained YOLO model
 
 4. Run the application
 ```bash
@@ -105,10 +105,10 @@ http://localhost:8000
 🤖 Improve YOLO model accuracy
 
 ## 🤝 Contributing ##
-1- Fork the repo
-2- Create a branch (feature/...)
-3- Commit changes
-4- Open Pull Request
+- 1- Fork the repo
+- 2- Create a branch (feature/...)
+- 3- Commit changes
+- 4- Open Pull Request
 
 ## 📄 License ##
 MIT License
