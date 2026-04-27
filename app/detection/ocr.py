@@ -1,0 +1,1 @@
+# reads the text from the plate image and returns it as a string

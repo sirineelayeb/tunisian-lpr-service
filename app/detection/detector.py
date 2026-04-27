@@ -1,0 +1,1 @@
+#   finds the plate in the image 
