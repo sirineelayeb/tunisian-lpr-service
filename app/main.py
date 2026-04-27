@@ -14,7 +14,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ── Stream processors (one per camera) ──────────────────────
+# ── Stream processors ────────────────────────────────────────
 entry_processor = StreamProcessor(
     rtsp_url=config.ENTRY_CAMERA_RTSP,
     direction="entry",
@@ -29,15 +29,13 @@ exit_processor = StreamProcessor(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Runs on startup and shutdown."""
     logger.info("Starting LPR service...")
 
-    # ── Step 5: Uncomment when model is ready ────────────────
-    # from app.detection.detector import detector
-    # from app.detection.ocr import ocr_reader
-    # detector.load()
-    # ocr_reader.load()
-    # ─────────────────────────────────────────────────────────
+    # Load models
+    from app.detection.detector import detector
+    from app.detection.ocr import ocr_reader
+    detector.load()
+    ocr_reader.load()
 
     # Check backend connectivity
     ok = await backend_client.health_check()
@@ -46,11 +44,10 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("Backend connection: FAILED — detections will retry automatically")
 
-    # Start camera stream processors as background tasks
-    # Uncomment when cameras are available:
+    # Start camera streams (uncomment when cameras are available)
     # asyncio.create_task(entry_processor.start())
     # asyncio.create_task(exit_processor.start())
-    logger.info("Camera streams: disabled (uncomment in main.py when cameras are ready)")
+    logger.info("Camera streams: disabled (no cameras connected yet)")
 
     logger.info("LPR service ready")
     yield
@@ -75,7 +72,6 @@ app = FastAPI(
 
 @app.get("/health")
 async def health():
-    """Render uses this to check if the service is alive."""
     return {
         "status":  "ok",
         "service": "lpr",
@@ -88,13 +84,9 @@ async def health():
 
 @app.post("/trigger")
 async def manual_trigger(plate: str, direction: str, confidence: float = 1.0):
-    """
-    Manually trigger a detection — useful for testing without a camera.
-    Same as what the real camera pipeline will do automatically.
-    """
-    from app.validation.plate_validator import validate_tunisian_plate
+    from app.validation.plate_validator import validate_plate
 
-    validated = validate_tunisian_plate(plate)
+    validated, plate_type = validate_plate(plate)
     if not validated:
         return {"success": False, "error": f"Invalid Tunisian plate format: {plate}"}
 
@@ -110,7 +102,6 @@ async def manual_trigger(plate: str, direction: str, confidence: float = 1.0):
 
 @app.get("/status")
 async def status():
-    """Full service status for debugging."""
     return {
         "entry_stream": {
             "url":     config.ENTRY_CAMERA_RTSP or "not configured",
@@ -120,7 +111,7 @@ async def status():
             "url":     config.EXIT_CAMERA_RTSP or "not configured",
             "running": exit_processor.running,
         },
-        "backend_url":        config.NODE_BACKEND_URL,
-        "confidence_threshold": config.CONFIDENCE_THRESHOLD,
-        "frame_interval":       config.FRAME_INTERVAL,
+        "backend_url":            config.NODE_BACKEND_URL,
+        "confidence_threshold":   config.CONFIDENCE_THRESHOLD,
+        "frame_interval":         config.FRAME_INTERVAL,
     }

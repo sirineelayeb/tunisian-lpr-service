@@ -9,13 +9,16 @@ logger = logging.getLogger(__name__)
 class BackendClient:
     def __init__(self):
         self.url     = config.NODE_BACKEND_URL
-        self.headers = {
-            "Content-Type":  "application/json",
-            "Authorization": f"Bearer {config.API_SECRET_KEY}"
-        }
+        self.headers = {"Content-Type": "application/json"}
+        if config.API_SECRET_KEY:
+            self.headers["Authorization"] = f"Bearer {config.API_SECRET_KEY}"
         self._client = httpx.AsyncClient(timeout=10.0)
 
     async def send_detection(self, plate_number, direction, camera_id, confidence, loading_zone=None):
+        if self._client.is_closed:
+            logger.warning("HTTP client is closed, skipping send")
+            return None
+
         payload = {
             "plateNumber": plate_number,
             "direction":   direction,
@@ -27,8 +30,11 @@ class BackendClient:
         if loading_zone:
             payload["loadingZone"] = loading_zone
 
+        logger.info(f"Sending to {self.url} → {payload}")
+
         try:
             response = await self._client.post(self.url, json=payload, headers=self.headers)
+            logger.info(f"Response: {response.status_code} — {response.text}")
             response.raise_for_status()
             data = response.json()
             logger.info(f"Detection sent: {plate_number} [{direction}] authorized={data.get('data', {}).get('isAuthorized')}")
@@ -42,8 +48,10 @@ class BackendClient:
         return None
 
     async def health_check(self):
+        if self._client.is_closed:
+            return False
         try:
-            base_url = self.url.replace("api/lpr/detect", "/health")
+            base_url = self.url.split("/api/")[0] + "/health"
             response = await self._client.get(base_url, timeout=5.0)
             return response.status_code == 200
         except Exception as e:

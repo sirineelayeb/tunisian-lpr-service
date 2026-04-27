@@ -9,16 +9,20 @@ class Config:
     EXIT_CAMERA_RTSP:  str = os.getenv("EXIT_CAMERA_RTSP",  "")
 
     # ── Node.js backend ─────────────────────────────────────
-    NODE_BACKEND_URL:  str = os.getenv("NODE_BACKEND_URL",  "http://localhost:5000/api/lpr/detect")
-    API_SECRET_KEY:    str = os.getenv("API_SECRET_KEY",    "")
+    NODE_BACKEND_URL: str = os.getenv("NODE_BACKEND_URL", "http://localhost:5000/api/lpr/detect")
+    API_SECRET_KEY:   str = os.getenv("API_SECRET_KEY",   "")
 
     # ── Detection settings ──────────────────────────────────
     FRAME_INTERVAL:         float = float(os.getenv("FRAME_INTERVAL",         "0.5"))
     CONFIDENCE_THRESHOLD:   float = float(os.getenv("CONFIDENCE_THRESHOLD",   "0.7"))
     DUPLICATE_COOLDOWN_SEC: int   = int(os.getenv("DUPLICATE_COOLDOWN_SEC",   "10"))
 
-    # ── Paths (filled in when model is ready) ───────────────
+    # ── Paths ───────────────────────────────────────────────
     YOLO_MODEL_PATH: str = os.getenv("YOLO_MODEL_PATH", "models/best.pt")
+
+    # ── Tesseract — override in .env on Windows ─────────────
+    # Windows example: C:\Program Files\Tesseract-OCR\tesseract.exe
+    TESSERACT_CMD: str = os.getenv("TESSERACT_CMD", "tesseract")
 
     # ── Logging ─────────────────────────────────────────────
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
