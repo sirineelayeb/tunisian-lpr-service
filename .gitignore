@@ -5,10 +5,6 @@
 __pycache__/
 *.pyc
 
-# Models
-models/
-*.pt
-
 # Debug / outputs
 *.jpg
 *.png
