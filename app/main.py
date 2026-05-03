@@ -187,24 +187,23 @@ async def test_images(files: List[UploadFile] = File(...)):
             continue
 
         detections = []
-        for i, crop in enumerate(crops):
-            text, confidence = ocr_reader.read(crop)
-            if text is None:
-                continue
-            plate, plate_type = validate_plate(text)
-            detections.append({
-                "crop_index": i,
-                "raw_ocr":    text,
-                "confidence": round(confidence, 4),
-                "plate":      plate,
-                "plate_type": plate_type,
-                "valid":      bool(plate is not None),
-            })
-            # Save debug crop — inside loop so i is always valid
-            cv2.imwrite(f"debug_crops/{file.filename}_crop{i}.jpg", crop)
-            logger.info(f"Saved crop: debug_crops/{file.filename}_crop{i}.jpg  shape={crop.shape}")
+                for i, crop in enumerate(crops):
+                    text, confidence = ocr_reader.read(crop)
+                    if text is None:
+                        continue
+                    plate, plate_type = validate_plate(text)
+                    detections.append({
+                        "crop_index": i,
+                        "raw_ocr":    text,
+                        "confidence": round(confidence, 4),
+                        "plate":      plate,
+                        "plate_type": plate_type,
+                        "valid":      bool(plate is not None),
+                    })
+                    cv2.imwrite(f"debug_crops/{file.filename}_crop{i}.jpg", crop)
+                    logger.info(f"Saved crop: debug_crops/{file.filename}_crop{i}.jpg  shape={crop.shape}")
 
-        all_results.append({"filename": file.filename, "detections": detections})
+                all_results.append({"filename": file.filename, "detections": detections})
 
     return {"results": all_results}
     from app.detection.detector import detector
