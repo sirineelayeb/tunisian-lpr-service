@@ -13,6 +13,7 @@ ultralytics==8.2.0
 
 # OCR
 easyocr==1.7.1
+python-bidi==0.4.2
 
 # CPU-only torch
 --extra-index-url https://download.pytorch.org/whl/cpu
