@@ -15,6 +15,8 @@ class Config:
     # ── Detection settings ──────────────────────────────────
     FRAME_INTERVAL:         float = float(os.getenv("FRAME_INTERVAL",         "0.5"))
     CONFIDENCE_THRESHOLD:   float = float(os.getenv("CONFIDENCE_THRESHOLD",   "0.7"))
+    # OCR confidence
+    YOLO_CONFIDENCE_THRESHOLD: float = float(os.getenv("YOLO_CONFIDENCE_THRESHOLD", "0.4")) 
     DUPLICATE_COOLDOWN_SEC: int   = int(os.getenv("DUPLICATE_COOLDOWN_SEC",   "10"))
 
     # ── Paths ───────────────────────────────────────────────
@@ -28,12 +30,12 @@ class Config:
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 
     def validate(self):
-        """Call at startup to catch missing variables early."""
         missing = []
-        if not self.ENTRY_CAMERA_RTSP: missing.append("ENTRY_CAMERA_RTSP")
-        if not self.EXIT_CAMERA_RTSP:  missing.append("EXIT_CAMERA_RTSP")
-        if not self.NODE_BACKEND_URL:  missing.append("NODE_BACKEND_URL")
+        if not self.NODE_BACKEND_URL:
+            missing.append("NODE_BACKEND_URL")
+        # Camera URLs are optional until hardware is connected
+        # if not self.ENTRY_CAMERA_RTSP: missing.append("ENTRY_CAMERA_RTSP")
+        # if not self.EXIT_CAMERA_RTSP:  missing.append("EXIT_CAMERA_RTSP")
         if missing:
             raise EnvironmentError(f"Missing required env vars: {', '.join(missing)}")
-
 config = Config()

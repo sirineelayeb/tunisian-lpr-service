@@ -23,20 +23,26 @@ class PlateDetector:
             logger.error(f"Failed to load YOLO: {e}")
 
     def detect(self, frame: np.ndarray) -> list:
-        """Run YOLO on full frame, return all boxes above confidence threshold."""
+        """Run YOLO on full frame, return all boxes above YOLO confidence threshold.
+        
+        FIX: Use a dedicated YOLO threshold (0.4), not the OCR threshold (0.7).
+        YOLO detection confidence and OCR read confidence are different things.
+        """
         if not self.loaded or self.model is None:
             return []
 
         results = self.model(frame, verbose=False)
-        return [
+        boxes = [
             box for box in results[0].boxes
-            if float(box.conf) >= config.CONFIDENCE_THRESHOLD
+            if float(box.conf) >= config.YOLO_CONFIDENCE_THRESHOLD
         ]
+        logger.debug(f"YOLO detected {len(boxes)} plate(s)")
+        return boxes
 
     def crop(self, frame: np.ndarray, box) -> np.ndarray:
         """Crop detected region from frame with small padding."""
         x1, y1, x2, y2 = map(int, box.xyxy[0])
-        pad = 4
+        pad = 12
         h, w = frame.shape[:2]
         x1 = max(0, x1 - pad)
         y1 = max(0, y1 - pad)
@@ -49,6 +55,9 @@ class PlateDetector:
         Fallback: find plate-like rectangles using contour detection.
         Used when YOLO misses the plate.
         Returns list of cropped plate images.
+
+        FIX: Widened aspect ratio from (2.0–5.5) to (1.5–7.0) to handle
+        partial views, angles, and non-standard crops.
         """
         gray    = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         blur    = cv2.bilateralFilter(gray, 11, 17, 17)
@@ -65,8 +74,10 @@ class PlateDetector:
             if len(approx) == 4:
                 x, y, w, h = cv2.boundingRect(approx)
                 ratio = w / h
-                if 2.0 <= ratio <= 5.5 and w > 60:
+                # FIX: was 2.0–5.5, too strict for angled/partial plates
+                if 1.5 <= ratio <= 7.0 and w > 60:
                     plates.append(frame[y:y+h, x:x+w])
+                    logger.debug(f"Contour plate found: {w}x{h} ratio={ratio:.2f}")
 
         return plates
 

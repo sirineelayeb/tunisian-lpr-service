@@ -2,174 +2,153 @@ import logging
 import re
 import numpy as np
 import cv2
-from app.config import config
 
 logger = logging.getLogger(__name__)
 
 
-def parse_tunisian_civilian(raw_ocr: str) -> str | None:
-    if not raw_ocr:
+# ─────────────────────────────────────────────
+# Civilian plate parser (COLAB-ALIGNED)
+# ─────────────────────────────────────────────
+def _is_valid_split(prefix: str, suffix: str) -> bool:
+    return 1 <= len(prefix) <= 3 and 1 <= len(suffix) <= 4
+
+
+def parse_tunisian_civilian(raw: str) -> str | None:
+    if not raw:
         return None
 
-    all_digits = re.sub(r"[^0-9]", "", raw_ocr)
+    groups = re.findall(r"\d+", raw)
 
-    if not all_digits:
+    # Case 1: exactly two groups
+    if len(groups) == 2:
+        prefix, suffix = groups
+        if _is_valid_split(prefix, suffix):
+            return f"{prefix} TN {suffix}"
+        if _is_valid_split(suffix, prefix):
+            return f"{suffix} TN {prefix}"
         return None
 
-    if len(all_digits) == 7:
-        return f"{all_digits[:3]} TN {all_digits[3:]}"
+    # Case 2: one blob
+    if len(groups) == 1:
+        blob = groups[0]
+        n = len(blob)
 
-    if len(all_digits) > 7:
-        logger.warning(f"Extra digits ({len(all_digits)}), using first 3 + last 4")
-        return f"{all_digits[:3]} TN {all_digits[-4:]}"
+        if n < 2 or n > 7:
+            return None
 
-    if 5 <= len(all_digits) <= 6:
-        groups = re.findall(r'\d+', raw_ocr)
-        if len(groups) == 2:
-            prefix, suffix = groups
-            if 1 <= len(prefix) <= 3 and len(suffix) == 4:
-                return f"{prefix} TN {suffix}"
+        candidates = []
+        for split in range(1, n):
+            p, s = blob[:split], blob[split:]
+            if _is_valid_split(p, s):
+                candidates.append((p, s))
 
-        if len(all_digits) == 6:
-            return f"{all_digits[:2]} TN {all_digits[2:]}"
-        if len(all_digits) == 5:
-            return f"{all_digits[:1]} TN {all_digits[1:]}"
+        if not candidates:
+            return None
 
-    logger.debug(f"Could not parse civilian plate from: '{raw_ocr}'")
+        best = max(candidates, key=lambda ps: (min(len(ps[1]), 4), len(ps[0])))
+        return f"{best[0]} TN {best[1]}"
+
+    # Case 3: more than 2 groups → merge
+    if len(groups) > 2:
+        return parse_tunisian_civilian("".join(groups))
+
     return None
 
 
+# ─────────────────────────────────────────────
+# OCR Reader
+# ─────────────────────────────────────────────
 class OCRReader:
     def __init__(self):
         self.easy_reader = None
-        self.tess_loaded = False
         self.easy_loaded = False
 
     def load(self):
         try:
             import easyocr
-            self.easy_reader = easyocr.Reader(['en'], gpu=False)
+            import torch
+
+            gpu = torch.cuda.is_available()
+            self.easy_reader = easyocr.Reader(["en", "ar"], gpu=gpu)
             self.easy_loaded = True
-            logger.info("EasyOCR loaded (en)")
+
+            logger.info(f"EasyOCR loaded (GPU={gpu})")
+
         except Exception as e:
             logger.warning(f"EasyOCR not available: {e}")
 
-        try:
-            import pytesseract
-            pytesseract.pytesseract.tesseract_cmd = config.TESSERACT_CMD
-            pytesseract.get_tesseract_version()
-            self.tess_loaded = True
-            logger.info("Tesseract loaded")
-        except Exception as e:
-            logger.warning(f"Tesseract not available: {e}")
-
-    def read(self, crop: np.ndarray) -> tuple:
-        processed = self._preprocess(crop)
-
-        if self.easy_loaded:
-            text, confidence = self._read_easyocr(processed)
-            if text:
-                parsed = parse_tunisian_civilian(text)
-                if parsed:
-                    logger.debug(f"EasyOCR (civilian parsed): '{parsed}' ({confidence:.2f})")
-                    return parsed, confidence
-                if confidence >= 0.4:
-                    logger.debug(f"EasyOCR (raw): '{text}' ({confidence:.2f})")
-                    return text, confidence
-
-        if self.tess_loaded:
-            text = self._read_tesseract(processed)
-            if text:
-                parsed = parse_tunisian_civilian(text)
-                if parsed:
-                    logger.debug(f"Tesseract (civilian parsed): '{parsed}'")
-                    return parsed, 0.6
-                return text, 0.6
-
-        return None, 0.0
-
-    def _read_easyocr(self, image: np.ndarray) -> tuple:
-        try:
-            best_text = None
-            best_conf = 0.0
-
-            results = self.easy_reader.readtext(
-                image,
-                detail=1,
-                allowlist='0123456789 TN',
-                width_ths=0.9,
-                paragraph=False
-            )
-            if results:
-                texts     = [r[1] for r in results]
-                confs     = [r[2] for r in results]
-                best_text = " ".join(texts).strip()
-                best_conf = sum(confs) / len(confs)
-
-            # Second attempt inverted — handles dark background plates
-            if best_conf < 0.6:
-                inverted = cv2.bitwise_not(image)
-                results2 = self.easy_reader.readtext(
-                    inverted,
-                    detail=1,
-                    allowlist='0123456789 TN',
-                    width_ths=0.9,
-                    paragraph=False
-                )
-                if results2:
-                    texts2 = [r[1] for r in results2]
-                    confs2 = [r[2] for r in results2]
-                    text2  = " ".join(texts2).strip()
-                    conf2  = sum(confs2) / len(confs2)
-                    if conf2 > best_conf:
-                        best_text = text2
-                        best_conf = conf2
-
-            return best_text or None, best_conf
-
-        except Exception as e:
-            logger.error(f"EasyOCR error: {e}")
+    def read(self, crop: np.ndarray) -> tuple[str | None, float]:
+        if crop is None or crop.size == 0:
             return None, 0.0
 
-    def _read_tesseract(self, image: np.ndarray) -> str | None:
-        try:
-            import pytesseract
-            from PIL import Image
-            pil_image = Image.fromarray(image)
-            text = pytesseract.image_to_string(
-                pil_image,
-                config='--psm 8 --oem 3 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+        def _ocr(img):
+            results = self.easy_reader.readtext(
+                img,
+                detail=1,
+                allowlist=None,
+                width_ths=0.7,
+                paragraph=False,
             )
-            return text.strip() or None
-        except Exception as e:
-            logger.error(f"Tesseract error: {e}")
-            return None
 
-    def _preprocess(self, image: np.ndarray) -> np.ndarray:
-        """
-        Upscale + sharpen only.
-        Tested: adaptive threshold destroys plate text — do NOT add it back.
-        """
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            if not results:
+                return None, 0.0
 
-        # Always upscale — most critical step (tested: gives conf=0.99)
+            texts = [r[1] for r in results]
+            confs = [r[2] for r in results]
+            avg_conf = sum(confs) / len(confs)
+
+            if avg_conf < 0.1:
+                return None, 0.0
+
+            return " ".join(texts).strip(), avg_conf
+
+        # ── 1. Gray ───────────────────────────────
+        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+
         h, w = gray.shape
-        scale = max(120 / h, 2.0)
-        gray = cv2.resize(
-            gray,
-            (int(w * scale), int(h * scale)),
-            interpolation=cv2.INTER_CUBIC
-        )
+        if h < 64:
+            scale = 64 / h
+            gray = cv2.resize(
+                gray,
+                (int(w * scale), int(h * scale)),
+                interpolation=cv2.INTER_CUBIC,
+            )
 
-        # Sharpen
-        kernel = np.array([
-            [ 0, -1,  0],
-            [-1,  5, -1],
-            [ 0, -1,  0]
-        ])
-        gray = cv2.filter2D(gray, -1, kernel)
+        # Light denoise
+        gray = cv2.medianBlur(gray, 3)
 
-        return gray
+        # ── 2. OCR ────────────────────────────────
+        text, conf = _ocr(gray)
+
+        # ── 3. Threshold ──────────────────────────
+        if text is None:
+            thresh = cv2.adaptiveThreshold(
+                gray, 255,
+                cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                cv2.THRESH_BINARY,
+                11, 2
+            )
+            text, conf = _ocr(thresh)
+
+        # ── 4. Inverted ───────────────────────────
+        if text is None:
+            inverted = cv2.bitwise_not(gray)
+            text, conf = _ocr(inverted)
+
+        # ── Post-processing ───────────────────────
+        if text:
+            text = re.sub(r'[\u0600-\u06FF]+', ' TN ', text)
+            text = re.sub(r'[^0-9A-Z\s\-]', '', text, flags=re.IGNORECASE)
+            text = re.sub(r'\s+', ' ', text).strip()
+            text = re.sub(r'\s+TN\s+TN\s+', ' TN ', text)
+
+        # ── Parse civilian ────────────────────────
+        if text:
+            parsed = parse_tunisian_civilian(text)
+            if parsed:
+                return parsed, conf
+
+        return text, conf
 
 
 ocr_reader = OCRReader()
