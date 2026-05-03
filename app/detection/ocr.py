@@ -58,17 +58,22 @@ class OCRReader:
         self.easy_loaded = False
 
     def load(self):
-        try:
-            import easyocr
-            import torch
+    try:
+        import easyocr
+        import torch
 
-            gpu = torch.cuda.is_available()
-            self.easy_reader = easyocr.Reader(["en", "ar"], gpu=gpu)
-            self.easy_loaded = True
-            logger.info(f"EasyOCR loaded (GPU={gpu})")
-        except Exception as e:
-            logger.warning(f"EasyOCR not available: {e}")
-
+        gpu = torch.cuda.is_available()
+        self.easy_reader = easyocr.Reader(
+            ["en", "ar"],
+            gpu=gpu,
+            model_storage_directory="models/easyocr",
+            download_enabled=False,
+        )
+        self.easy_loaded = True
+        logger.info(f"EasyOCR loaded (GPU={gpu})")
+    except Exception as e:
+        logger.warning(f"EasyOCR not available: {e}")
+        
     def _run_ocr(self, img: np.ndarray) -> tuple[str | None, float]:
         """Run EasyOCR on a single image and return (text, confidence)."""
         results = self.easy_reader.readtext(
