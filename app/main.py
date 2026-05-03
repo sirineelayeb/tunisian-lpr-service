@@ -34,7 +34,7 @@ exit_processor = StreamProcessor(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting LPR service...")
-
+    os.makedirs("debug_crops", exist_ok=True)
     from app.detection.detector import detector
     from app.detection.ocr import ocr_reader
     detector.load()
@@ -200,8 +200,59 @@ async def test_images(files: List[UploadFile] = File(...)):
                 "plate_type": plate_type,
                 "valid":      bool(plate is not None),
             })
+            # Save debug crop — inside loop so i is always valid
+            cv2.imwrite(f"debug_crops/{file.filename}_crop{i}.jpg", crop)
+            logger.info(f"Saved crop: debug_crops/{file.filename}_crop{i}.jpg  shape={crop.shape}")
 
         all_results.append({"filename": file.filename, "detections": detections})
+
+    return {"results": all_results}
+    from app.detection.detector import detector
+    from app.detection.ocr import ocr_reader
+    from app.validation.plate_validator import validate_plate
+
+    all_results = []
+
+    for file in files:
+        contents = await file.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if frame is None:
+            all_results.append({"filename": file.filename, "error": "Could not decode image"})
+            continue
+
+        boxes = detector.detect(frame)
+        crops = [detector.crop(frame, box) for box in boxes]
+
+        if not crops:
+            crops = detector.detect_by_contours(frame)
+
+        if not crops:
+            all_results.append({"filename": file.filename, "error": "No plate detected"})
+            continue
+
+
+
+        detections = []
+                for i, crop in enumerate(crops):
+                    text, confidence = ocr_reader.read(crop)
+                    if text is None:
+                        continue
+                    plate, plate_type = validate_plate(text)
+                    detections.append({
+                        "crop_index": i,
+                        "raw_ocr":    text,
+                        "confidence": round(confidence, 4),
+                        "plate":      plate,
+                        "plate_type": plate_type,
+                        "valid":      bool(plate is not None),
+                    })
+        # Save each crop (debug) 
+        cv2.imwrite(f"debug_crops/{file.filename}_crop{i}.jpg", crop)
+        logger.info(f"Saved crop: debug_crops/{file.filename}_crop{i}.jpg  shape={crop.shape}")
+        all_results.append({"filename": file.filename, "detections": detections})
+
         save_dir = "debug_crops"
         os.makedirs(save_dir, exist_ok=True)
         cv2.imwrite(f"{save_dir}/{file.filename}_crop{i}.jpg", crop)

@@ -1,3 +1,4 @@
+# requirements.txt
 # Core
 fastapi==0.111.0
 uvicorn==0.29.0
@@ -11,13 +12,10 @@ numpy==2.1.0
 # Detection
 ultralytics==8.2.0
 
-# OCR - Primary
+# OCR
 easyocr==1.7.1
 
-# OCR - Fallback
-pytesseract==0.3.10
-Pillow==11.2.1
-
-# CPU-only torch (Python 3.13 compatible)
-torch==2.6.0
-torchvision==0.21.0
+# CPU-only torch 
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.6.0+cpu
+torchvision==0.21.0+cpu
