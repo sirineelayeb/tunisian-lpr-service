@@ -7,9 +7,6 @@ import cv2
 logger = logging.getLogger(__name__)
 
 
-# ─────────────────────────────────────────────
-# Civilian plate parser
-# ─────────────────────────────────────────────
 def _is_valid_split(prefix: str, suffix: str) -> bool:
     return 1 <= len(prefix) <= 3 and 1 <= len(suffix) <= 4
 
@@ -49,33 +46,24 @@ def parse_tunisian_civilian(raw: str) -> str | None:
     return None
 
 
-# ─────────────────────────────────────────────
-# OCR Reader
-# ─────────────────────────────────────────────
 class OCRReader:
     def __init__(self):
         self.easy_reader = None
         self.easy_loaded = False
 
     def load(self):
-    try:
-        import easyocr
-        import torch
+        try:
+            import easyocr
+            import torch
 
-        gpu = torch.cuda.is_available()
-        self.easy_reader = easyocr.Reader(
-            ["en", "ar"],
-            gpu=gpu,
-            model_storage_directory="models/easyocr",
-            download_enabled=False,
-        )
-        self.easy_loaded = True
-        logger.info(f"EasyOCR loaded (GPU={gpu})")
-    except Exception as e:
-        logger.warning(f"EasyOCR not available: {e}")
-        
+            gpu = torch.cuda.is_available()
+            self.easy_reader = easyocr.Reader(["en", "ar"], gpu=gpu)
+            self.easy_loaded = True
+            logger.info(f"EasyOCR loaded (GPU={gpu})")
+        except Exception as e:
+            logger.warning(f"EasyOCR not available: {e}")
+
     def _run_ocr(self, img: np.ndarray) -> tuple[str | None, float]:
-        """Run EasyOCR on a single image and return (text, confidence)."""
         results = self.easy_reader.readtext(
             img,
             detail=1,
@@ -99,7 +87,6 @@ class OCRReader:
         if crop is None or crop.size == 0:
             return None, 0.0
 
-        # ── 1. Grayscale + upscale if too small ──────────────
         gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
         h, w = gray.shape
         if h < 64:
@@ -108,10 +95,8 @@ class OCRReader:
                               interpolation=cv2.INTER_CUBIC)
         gray = cv2.medianBlur(gray, 3)
 
-        # ── 2. Try plain gray ─────────────────────────────────
         text, conf = self._run_ocr(gray)
 
-        # ── 3. Adaptive threshold fallback ───────────────────
         if text is None:
             thresh = cv2.adaptiveThreshold(
                 gray, 255,
@@ -121,18 +106,15 @@ class OCRReader:
             )
             text, conf = self._run_ocr(thresh)
 
-        # ── 4. Inverted fallback ──────────────────────────────
         if text is None:
             text, conf = self._run_ocr(cv2.bitwise_not(gray))
 
-        # ── Post-processing ───────────────────────────────────
         if text:
             text = re.sub(r'[\u0600-\u06FF]+', ' TN ', text)
             text = re.sub(r'[^0-9A-Z\s\-]', '', text, flags=re.IGNORECASE)
             text = re.sub(r'\s+', ' ', text).strip()
             text = re.sub(r'\s+TN\s+TN\s+', ' TN ', text)
 
-        # ── Parse civilian format ─────────────────────────────
         if text:
             parsed = parse_tunisian_civilian(text)
             if parsed:
