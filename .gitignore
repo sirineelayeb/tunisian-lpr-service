@@ -5,8 +5,8 @@
 __pycache__/
 *.pyc
 
-# EasyOCR models
-models/easyocr/
+# Models
+models/
 
 # Debug / outputs
 *.jpg
@@ -14,4 +14,3 @@ models/easyocr/
 *.mp4
 *.json
 debug_crops/
-yolov8n.pt
