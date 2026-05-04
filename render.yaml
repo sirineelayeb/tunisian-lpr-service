@@ -3,5 +3,36 @@ services:
     name: lpr-service
     runtime: python
     pythonVersion: "3.11"
-    buildCommand: pip install -r requirements.txt
+    plan: standard
+    buildCommand: "pip install --upgrade pip && pip install torch==2.9.1+cpu torchvision==0.24.1+cpu --extra-index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt && python -c \"from ultralytics import YOLO; YOLO('yolov8n.pt')\""
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+
+    disk:
+      name: model-cache
+      mountPath: /opt/model-cache
+      sizeGB: 5
+
+    envVars:
+      - key: EASYOCR_MODULE_PATH
+        value: /opt/model-cache/easyocr
+      - key: YOLO_MODEL_PATH
+        value: yolov8n.pt
+      - key: NODE_BACKEND_URL
+        sync: false
+      - key: ENTRY_CAMERA_RTSP
+        sync: false
+      - key: EXIT_CAMERA_RTSP
+        sync: false
+      - key: LOG_LEVEL
+        value: INFO
+      - key: CONFIDENCE_THRESHOLD
+        value: "0.45"
+      - key: YOLO_CONFIDENCE_THRESHOLD
+        value: "0.4"
+      - key: DUPLICATE_COOLDOWN_SEC
+        value: "10"
+      - key: FRAME_INTERVAL
+        value: "0.5"
+      - key: API_SECRET_KEY
+        sync: false

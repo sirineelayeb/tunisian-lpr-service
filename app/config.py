@@ -28,7 +28,8 @@ class Config:
 
     def validate(self):
         if not self.NODE_BACKEND_URL:
-            raise EnvironmentError("Missing required env var: NODE_BACKEND_URL")
+            # raise EnvironmentError(...)  ← this kills startup before you can set env vars
+            logger.warning("NODE_BACKEND_URL not set — backend sending will fail")
 
 
 config = Config()

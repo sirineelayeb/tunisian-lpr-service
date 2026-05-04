@@ -51,7 +51,9 @@ class BackendClient:
         if self._client.is_closed:
             return False
         try:
-            base_url = self.url.split("/api/")[0] + "/health"
+            from urllib.parse import urlparse
+            parsed = urlparse(self.url)
+            base_url = f"{parsed.scheme}://{parsed.netloc}/health"
             response = await self._client.get(base_url, timeout=5.0)
             return response.status_code == 200
         except Exception as e:

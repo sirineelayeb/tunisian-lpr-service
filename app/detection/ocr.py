@@ -1,4 +1,3 @@
-# app/detection/ocr.py
 import logging
 import re
 import numpy as np
@@ -136,4 +135,3 @@ class OCRReader:
 
 ocr_reader = OCRReader()
 
-ocr_reader = OCRReader()
