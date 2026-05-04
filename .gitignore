@@ -5,6 +5,9 @@
 __pycache__/
 *.pyc
 
+# EasyOCR models
+models/easyocr/
+
 # Debug / outputs
 *.jpg
 *.png
