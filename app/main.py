@@ -34,10 +34,11 @@ exit_processor = StreamProcessor(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting LPR service...")
-    os.makedirs("debug_crops", exist_ok=True)
 
     from app.detection.detector import detector
+    from app.detection.ocr import ocr_reader
     detector.load()
+    ocr_reader.load()
 
     ok = await backend_client.health_check()
     if ok:
@@ -45,7 +46,11 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("Backend connection: FAILED — detections will retry automatically")
 
+    # camera processors
+    # asyncio.create_task(entry_processor.start())
+    # asyncio.create_task(exit_processor.start())
     logger.info("Camera streams: disabled (no cameras connected yet)")
+
     logger.info("LPR service ready")
     yield
 
@@ -64,10 +69,7 @@ app = FastAPI(
 )
 
 
-@app.get("/")
-async def root():
-    return {"status": "ok", "service": "lpr"}
-
+# ── Routes ───────────────────────────────────────────────────
 
 @app.get("/health")
 async def health():
@@ -199,9 +201,11 @@ async def test_images(files: List[UploadFile] = File(...)):
                 "plate_type": plate_type,
                 "valid":      bool(plate is not None),
             })
-            cv2.imwrite(f"debug_crops/{file.filename}_crop{i}.jpg", crop)
-            logger.info(f"Saved crop: debug_crops/{file.filename}_crop{i}.jpg  shape={crop.shape}")
 
         all_results.append({"filename": file.filename, "detections": detections})
+        save_dir = "debug_crops"
+        os.makedirs(save_dir, exist_ok=True)
+        cv2.imwrite(f"{save_dir}/{file.filename}_crop{i}.jpg", crop)
+        logger.info(f"Saved crop: {save_dir}/{file.filename}_crop{i}.jpg  shape={crop.shape}")
 
     return {"results": all_results}
