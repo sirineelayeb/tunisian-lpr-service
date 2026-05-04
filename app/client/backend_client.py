@@ -9,10 +9,14 @@ logger = logging.getLogger(__name__)
 class BackendClient:
     def __init__(self):
         self.url     = config.NODE_BACKEND_URL
-        self.headers = {"Content-Type": "application/json"}
-        if config.API_SECRET_KEY:
-            self.headers["Authorization"] = f"Bearer {config.API_SECRET_KEY}"
         self._client = httpx.AsyncClient(timeout=10.0)
+
+    def _get_headers(self):
+        headers = {"Content-Type": "application/json"}
+        key = config.API_SECRET_KEY
+        if key:
+            headers["Authorization"] = f"Bearer {key}"
+        return headers
 
     async def send_detection(self, plate_number, direction, camera_id, confidence, loading_zone=None):
         if self._client.is_closed:
@@ -33,7 +37,7 @@ class BackendClient:
         logger.info(f"Sending to {self.url} → {payload}")
 
         try:
-            response = await self._client.post(self.url, json=payload, headers=self.headers)
+            response = await self._client.post(self.url, json=payload, headers=self._get_headers())
             logger.info(f"Response: {response.status_code} — {response.text}")
             response.raise_for_status()
             data = response.json()
