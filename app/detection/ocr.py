@@ -1,4 +1,3 @@
-# app/detection/ocr.py
 import logging
 import re
 import numpy as np
@@ -57,7 +56,7 @@ class OCRReader:
             import torch
 
             gpu = torch.cuda.is_available()
-            self.easy_reader = easyocr.Reader(["en", "ar"], gpu=gpu)
+            self.easy_reader = easyocr.Reader(["en"], gpu=gpu)
             self.easy_loaded = True
             logger.info(f"EasyOCR loaded (GPU={gpu})")
         except Exception as e:
