@@ -1,3 +1,4 @@
+# app/detection/ocr.py
 import logging
 import re
 import numpy as np
@@ -6,6 +7,9 @@ import cv2
 logger = logging.getLogger(__name__)
 
 
+# ─────────────────────────────────────────────
+# Civilian plate parser
+# ─────────────────────────────────────────────
 def _is_valid_split(prefix: str, suffix: str) -> bool:
     return 1 <= len(prefix) <= 3 and 1 <= len(suffix) <= 4
 
@@ -45,6 +49,9 @@ def parse_tunisian_civilian(raw: str) -> str | None:
     return None
 
 
+# ─────────────────────────────────────────────
+# OCR Reader
+# ─────────────────────────────────────────────
 class OCRReader:
     def __init__(self):
         self.easy_reader = None
@@ -83,6 +90,11 @@ class OCRReader:
         return " ".join(texts).strip(), avg_conf
 
     def read(self, crop: np.ndarray) -> tuple[str | None, float]:
+        if not self.easy_loaded:
+            self.load()
+        if not self.easy_loaded:
+            return None, 0.0
+
         if crop is None or crop.size == 0:
             return None, 0.0
 
@@ -121,5 +133,7 @@ class OCRReader:
 
         return text, conf
 
+
+ocr_reader = OCRReader()
 
 ocr_reader = OCRReader()

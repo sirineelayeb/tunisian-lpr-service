@@ -37,9 +37,7 @@ async def lifespan(app: FastAPI):
     os.makedirs("debug_crops", exist_ok=True)
 
     from app.detection.detector import detector
-    from app.detection.ocr import ocr_reader
-    detector.load()
-    ocr_reader.load()
+    detector.load()  # YOLO only at startup
 
     ok = await backend_client.health_check()
     if ok:
@@ -56,8 +54,6 @@ async def lifespan(app: FastAPI):
     exit_processor.stop()
     await backend_client.close()
     logger.info("LPR service stopped")
-
-
 app = FastAPI(
     title="LPR Service",
     description="License Plate Recognition service for Tunisian fleet management",
