@@ -1,25 +1,25 @@
-# 🚗 Tunisian LPR Service
+# Tunisian LPR Service
 
-A License Plate Recognition (LPR) system built for **Tunisian vehicle plates**, designed to detect and read plate numbers from images or live RTSP camera streams using YOLO and EasyOCR.
+A License Plate Recognition (LPR) system built for Tunisian vehicle plates, designed to detect and read plate numbers from images or live RTSP camera streams using YOLO and EasyOCR.
 
 Built as part of a fleet management platform — can be integrated into parking systems, security checkpoints, and access control gates.
 
 ---
 
-## ✨ Features
+## Features
 
-- 🔍 Real-time plate detection via YOLO (custom-trained model)
-- 🔤 OCR with EasyOCR (Arabic + Latin support)
-- 🧠 Tunisian plate format validation (civilian, government, diplomatic, military, temporary, dealer)
-- 🎥 RTSP stream processing with async frame pipeline
-- 🔁 Contour-based fallback detection when YOLO misses
-- 🚫 Duplicate suppression with configurable cooldown
-- 📡 REST API (FastAPI) with `/test-image`, `/trigger`, `/health`, `/status` endpoints
-- 📋 Structured logging throughout
+- Real-time plate detection via YOLO (custom-trained model)
+- OCR with EasyOCR (Arabic + Latin support)
+- Tunisian plate format validation (civilian, government, diplomatic, military, temporary, dealer)
+- RTSP stream processing with async frame pipeline
+- Contour-based fallback detection when YOLO misses
+- Duplicate suppression with configurable cooldown
+- REST API (FastAPI) with `/test-image`, `/trigger`, `/health`, `/status` endpoints
+- Structured logging throughout
 
 ---
 
-## 🧱 Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -33,7 +33,7 @@ Built as part of a fleet management platform — can be integrated into parking 
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 tunisian-lpr-service/
@@ -58,7 +58,7 @@ tunisian-lpr-service/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Clone the repository
 
@@ -83,7 +83,6 @@ pip install -r requirements.txt
 
 > **Note:** PyTorch is not in `requirements.txt`. Install it separately for your platform:
 > ```bash
-> # CPU only (recommended for local dev)
 > pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 > ```
 
@@ -96,22 +95,18 @@ Place your trained model at `models/best.pt` (not included in the repo).
 Create a `.env` file in the project root:
 
 ```env
-# Backend
 NODE_BACKEND_URL=http://localhost:5000/api/lpr/detect
 API_SECRET_KEY=your_secret_key_here
 
-# Camera streams (optional — leave blank if using image upload API)
 ENTRY_CAMERA_RTSP=rtsp://192.168.1.100:554/stream1
 EXIT_CAMERA_RTSP=rtsp://192.168.1.101:554/stream1
 
-# Detection settings
 YOLO_MODEL_PATH=models/best.pt
 YOLO_CONFIDENCE_THRESHOLD=0.4
 CONFIDENCE_THRESHOLD=0.45
 DUPLICATE_COOLDOWN_SEC=10
 FRAME_INTERVAL=0.5
 
-# Logging
 LOG_LEVEL=INFO
 ```
 
@@ -125,7 +120,7 @@ API available at: `http://localhost:8000`
 
 ---
 
-## 🛠️ API Endpoints
+## API Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -160,7 +155,7 @@ Response:
 
 ---
 
-## 🔐 Environment Variables
+## Environment Variables
 
 | Variable | Description | Default |
 |---|---|---|
@@ -177,7 +172,7 @@ Response:
 
 ---
 
-## 🧩 Supported Plate Formats
+## Supported Plate Formats
 
 | Type | Example |
 |---|---|
@@ -191,7 +186,7 @@ Response:
 
 ---
 
-## 🔮 Roadmap
+## Roadmap
 
 - [ ] Improve YOLO model accuracy on angled / partial plates
 - [ ] Web dashboard for live detection feed
@@ -199,7 +194,7 @@ Response:
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repo
 2. Create a branch: `git checkout -b feature/your-feature`
@@ -208,12 +203,12 @@ Response:
 
 ---
 
-## 📄 License
+## License
 
 MIT License
 
 ---
 
-## 👩‍💻 Author
+## Author
 
 **Syrine Elayeb** — PFE internship project
