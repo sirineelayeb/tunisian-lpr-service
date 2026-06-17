@@ -1,0 +1,16 @@
+# Environment
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Models
+models/
+
+# Debug / outputs
+*.jpg
+*.png
+*.mp4
+*.json
+debug_crops/
